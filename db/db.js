@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 async function connectDB() {
   try {
-    const conn = await mongoose.connect("mongodb://127.0.0.1:27017/checkboxDB");
+    const conn = await mongoose.connect(process.env.MONGODB_URI);
     console.log("MongoDB connected");
     return conn;
   } catch (error) {
