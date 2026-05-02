@@ -127,6 +127,8 @@
           input.checked = checked;
         }
       });
+      let lastEventTime = 0;
+      let gap = 5000;
 
       window.addEventListener("load", async () => {
         const response = await fetch("/checkboxes", { method: "GET" });
@@ -138,9 +140,18 @@
             input.id = `checkbox-${index}`;
             input.checked = serverValue;
 
+            // rate limiting
+
             input.addEventListener("change", (event) => {
+              let now = Date.now();
+              if (now - lastEventTime < gap) {
+                event.target.checked = !event.target.checked;
+                return;
+              }
+              lastEventTime = now;
+
               const checked = event.target.checked;
-              //   console.log({ index, checked });
+
               socket.emit("client:checkbox:change", { index, checked });
             });
             container.appendChild(input);
