@@ -146,6 +146,7 @@
               let now = Date.now();
               if (now - lastEventTime < gap) {
                 event.target.checked = !event.target.checked;
+                throw alert("Wait 5 sec");
                 return;
               }
               lastEventTime = now;
