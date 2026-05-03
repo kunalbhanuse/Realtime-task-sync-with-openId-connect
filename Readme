@@ -1,0 +1,184 @@
+🔐 Realtime Checkbox Sync with OAuth 2.0 + OpenID Connect
+
+
+Demo:-
+youtube:-https://youtu.be/eSu6Hg00hAE
+
+A full-stack real-time application that combines WebSockets (Socket.IO) with a custom-built OAuth 2.0 + OpenID Connect authentication system.
+
+Users can view a shared checkbox grid in real time, but only authenticated users are allowed to modify it.
+
+🚀 Features
+🔐 OAuth 2.0 Authorization Code Flow (Custom Built)
+🧠 OpenID Connect (OIDC) for user identity
+🍪 JWT-based authentication stored in HTTP-only cookies
+⚡ Realtime updates using Socket.IO + Redis Pub/Sub
+👀 Public read access (anyone can view)
+✏️ Restricted write access (only logged-in users can update)
+⏱️ Session expiration using JWT + cookie maxAge
+🚫 Unauthorized socket connections are blocked
+🏗️ Architecture
+1. Authorization Server (Port 8000)
+
+Handles:
+
+Login
+Consent
+Authorization Code generation
+Token exchange (/token)
+JWT issuance
+2. Realtime App Server (Port 9000)
+
+Handles:
+
+OAuth client flow (/login, /callback)
+Cookie storage
+Socket authentication
+Checkbox sync logic
+Redis Pub/Sub
+3. Redis
+
+Used for:
+
+Broadcasting checkbox updates across instances
+4. MongoDB
+
+Stores:
+
+Checkbox state
+🔁 Full Flow
+1. User clicks Login
+GET /login
+
+Redirects to:
+
+http://localhost:8000/authorize
+2. Authorization Flow
+User logs in
+Gives consent
+Gets redirected back:
+http://localhost:9000/callback?code=abc123
+3. Token Exchange
+POST http://localhost:8000/token
+
+Response:
+
+{
+  "access_token": "jwt_token"
+}
+4. Cookie Storage
+res.cookie("access_token", token, {
+  httpOnly: true,
+  maxAge: 30 * 1000
+});
+5. Socket Authentication
+io.use((socket, next) => {
+  const token = socket.request.cookies?.access_token;
+
+  if (!token) return next(new Error("Unauthorized"));
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = decoded;
+    next();
+  } catch {
+    next(new Error("Unauthorized"));
+  }
+});
+
+6. Realtime Updates
+
+Client emits:
+
+socket.emit("client:checkbox:change", { index, checked });
+Server publishes via Redis
+All clients receive:
+io.emit("server:checkbox:change", data);
+
+🔒 Access Control
+
+User Type	View	Modify
+
+Guest	✅	❌
+Logged-in	✅	✅
+⏱️ Session Handling
+JWT contains expiry (exp)
+Cookie uses maxAge
+On expiry:
+Socket reconnect fails
+User becomes unauthorized
+
+
+📁 Project Structure
+.
+├── server.js
+├── db/
+│   ├── db.js
+│   └── model.checkbox.js
+├── public/
+│   └── index.html
+├── redis-connection.js
+├── .env
+
+
+⚙️ Environment Variables
+Realtime App (.env)
+PORT=9000
+CLIENT_ID=your_client_id
+CLIENT_SECRET=your_client_secret
+REDIRECT_URI=http://localhost:9000/callback
+JWT_SECRET=1234567890
+Auth Server (.env)
+PORT=8000
+JWT_SECRET=1234567890
+
+👉 ⚠️ JWT_SECRET must match in both servers
+
+🧪 How to Run
+
+
+1. Start MongoDB
+
+mongod
+
+2. Start Redis
+redis-server
+
+3. Start Auth Server
+cd openid-server
+
+npm install
+
+npm start
+
+4. Start Realtime App
+cd realtime-app
+npm install
+npm start
+
+5. Open in browser
+http://localhost:9000
+
+
+🎯 Key Learnings
+
+
+OAuth 2.0 is authorization, not authentication
+OpenID Connect adds identity layer
+JWT enables stateless auth
+WebSockets require separate auth handling
+Cookies + JWT must be aligned for expiry
+Redis enables horizontal scalability
+⚠️ Limitations (Intentional)
+No refresh tokens
+No PKCE
+No HTTPS (secure cookies disabled)
+No token revocation
+Basic error handling
+🚀 Future Improvements
+Add refresh tokens
+Implement PKCE
+Use secure cookies (HTTPS)
+Add logout endpoint
+Role-based access control
+Socket reconnection with token refresh
